@@ -65,5 +65,16 @@ class GridNode(object):
         else:
             return s
 
+    # Create a root GridNode given the grid cell contents
+    @staticmethod
+    def get_root_inst_with(contents):
+        return GridNode(None, contents, contents.index(0))
+
 if __name__ == "__main__":
-    pass
+    test_nodes = [
+        GridNode.get_root_inst_with([1,2,3,4,5,6,0,8,9,10,7,12,13,14,11,15]),
+        GridNode.get_root_inst_with([1,0,3,4,5,2,7,8,9,6,10,11,13,14,15,12]),
+        GridNode.get_root_inst_with([0,2,3,4,1,5,7,8,9,6,11,12,13,10,14,15]),
+        GridNode.get_root_inst_with([5,1,2,3,0,6,7,4,9,10,11,8,13,14,15,12]),
+        GridNode.get_root_inst_with([1,6,2,3,9,5,7,4,0,10,11,8,13,14,15,12])
+    ]
