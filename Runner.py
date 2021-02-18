@@ -51,6 +51,20 @@ class GridNode(object):
     def __str__(self):
         return str(self.grid)
 
+    # Determine if the grid of a given GridNode is one that already exists in the tree
+    def has_visited(self, other):
+        if self == other:
+            return True
+        elif self.parent:
+            return self.parent.has_visited(other)
+        else:
+            return False
+
+    # Determine if a given object is a valid child, meaning it is a GridNode and it also
+    # has not been visited before
+    def valid_child(self, other):
+        return not self.has_visited(other) if isinstance(other, GridNode) else False
+
     # Pretty print, including tracking depth of the tree to be parsable
     def pprint(self, depth=1):
         s = str(self)
