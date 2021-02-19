@@ -65,6 +65,38 @@ class GridNode(object):
     def valid_child(self, other):
         return not self.has_visited(other) if isinstance(other, GridNode) else False
 
+    # After a move is known to be possible, create the resultant node; The z-index is
+    # translated according to where the empty tile would end up on the 1-D container
+    def action_move(self, dz):
+        new_zindex = self.zindex + dz
+        new_contents = list(self.grid.contents)
+        new_contents[self.zindex], new_contents[new_zindex] = new_contents[new_zindex], new_contents[self.zindex]
+        return GridNode(self, new_contents, new_zindex)
+
+    # Return the GridNode that would be generated as a result of moving the empty tile
+    # up, None if the empty tile is already in the top row and can't be moved up
+    def move_up(self):
+        global GRID_W
+        return None if self.zindex < GRID_W else self.action_move(-GRID_W)
+
+    # Return the GridNode that would be generated as a result of moving the empty tile
+    # down, None if the empty tile is already in the bottom row and can't be moved down
+    def move_down(self):
+        global GRID_A, GRID_W
+        return None if self.zindex >= GRID_A - GRID_W else self.action_move(GRID_W)
+
+    # Return the GridNode that would be generated as a result of moving the empty tile
+    # left, None if the empty tile is already in the left column and can't be moved left
+    def move_left(self):
+        global GRID_W
+        return None if self.zindex % GRID_W == 0 else self.action_move(-1)
+
+    # Return the GridNode that would be generated as a result of moving the empty tile
+    # right, None if the empty tile is already in the left column and can't be moved right
+    def move_right(self):
+        global GRID_W
+        return None if self.zindex % GRID_W == (GRID_W - 1) else self.action_move(1)
+
     # Pretty print, including tracking depth of the tree to be parsable
     def pprint(self, depth=1):
         s = str(self)
