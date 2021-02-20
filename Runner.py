@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 
+from collections import deque
+
 GRID_H = 4
 GRID_W = 4
 GRID_A = 16
@@ -24,6 +26,9 @@ class Grid(object):
     def __str__(self):
         global GRID_A, GRID_W
         return "\n".join("".join("{0: <3}".format(c) for c in self.contents[i:i+GRID_W]).strip() for i in range(0, GRID_A, GRID_W))
+
+# Create a copy of the grid that represents the objective state for the puzzle
+GRID_OBJ = Grid([i for i in range(1, GRID_A)] + [0])
 
 # An object that represents one state of a Grid that lives in a tree of states
 class GridNode(object):
@@ -96,6 +101,40 @@ class GridNode(object):
     def move_right(self):
         global GRID_W
         return None if self.zindex % GRID_W == (GRID_W - 1) else self.action_move(1)
+
+    # Return a 4-tuple of the moves attempted in each direction
+    def all_moves(self):
+        return self.move_up(), self.move_down(), self.move_left(), self.move_right()
+
+    # Perform breadth first search on a root node
+    def bfs(self):
+        global GRID_OBJ
+
+        # Create the queue of child nodes to visit
+        nodes = deque()
+        nodes_visited = 0
+
+        # Start at the root node, search until the objective grid has not been found
+        curr_node = self
+        final_node = None
+        while curr_node and not final_node:
+            nodes_visited = nodes_visited + 1
+            if curr_node.grid == GRID_OBJ:
+                # This node has the objective state, exit the loop
+                final_node = curr_node
+            else:
+                # Get the results of the four types of moves
+                for potential_child in curr_node.all_moves():
+                    # Determine if each move was valid
+                    if curr_node.valid_child(potential_child):
+                        # Move was valid, add it to the queue of nodes to visit (push it right)
+                        nodes.append(potential_child)
+
+            # We're done with this node, get the next in the queue (pop it left)
+            curr_node = nodes.popleft()
+
+        # Eventually, the objective grid is found
+        return final_node, nodes_visited
 
     # Pretty print, including tracking depth of the tree to be parsable
     def pprint(self, depth=1):
