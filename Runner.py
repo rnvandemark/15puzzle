@@ -217,13 +217,13 @@ class GridNode(object):
 if __name__ == "__main__":
     parser = ArgumentParser(description="""
         Run a X-Puzzle. By default, this runs a random 4x4 puzzle (see the
-        -d / --dimensions option, if no options are provided then this is the
+        -r / --random option, if no options are provided then this is the
         default). The five test cases can be ran if specified (see the -t /
         --do-tests option).
     """)
     parser.add_argument(
-        "-d",
-        "--dimensions",
+        "-r",
+        "--random",
         metavar="MxNxD",
         type=str,
         default="4x4x15",
@@ -238,10 +238,22 @@ if __name__ == "__main__":
         """
     )
     parser.add_argument(
+        "-p",
+        "--populate",
+        metavar="MxNxv11,v21...vN1,v12,v22,...vNM",
+        type=str,
+        help="""
+            HEIGHTxWIDTHxCONTENTS, where HEIGHT and WIDTH are the height and width
+            of the puzzle, and CONTENTS is a comma-separated list of the grid, row
+            by row. The values must be unique and, if sorted, sequential from 0 to
+            one less than the grid's area.
+        """
+    )
+    parser.add_argument(
         "-t",
         "--do-tests",
         action="store_true",
-        help="Run the five 4x4 test cases (will ignore the value for 'dimensions')."
+        help="Run the five 4x4 test cases."
     )
     args = parser.parse_args()
 
@@ -260,8 +272,15 @@ if __name__ == "__main__":
             GridNode.get_root_inst_with([5,1,2,3,0,6,7,4,9,10,11,8,13,14,15,12]),
             GridNode.get_root_inst_with([1,6,2,3,9,5,7,4,0,10,11,8,13,14,15,12])
         ]
+    elif args.populate:
+        h_str, w_str, grid_contents_str = args.populate.split("x")
+        set_grid_consts(int(h_str), int(w_str))
+        grid_contents = [int(c) for c in grid_contents_str.split(",")]
+        contents_set = sorted(list(set(grid_contents)))
+        assert((len(contents_set) == GRID_A) and (contents_set[0] == 0) and (contents_set[-1] == (GRID_A - 1)))
+        test_nodes = [GridNode.get_root_inst_with(grid_contents)]
     else:
-        h, w, pseudo_node_inverses = (int(s) for s in args.dimensions.split("x"))
+        h, w, pseudo_node_inverses = (int(s) for s in args.random.split("x"))
         set_grid_consts(h, w)
         test_nodes = [GridNode.get_pseudo_rand_root_inst(GRID_OBJ.contents, pseudo_node_inverses)]
 
