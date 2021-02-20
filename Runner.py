@@ -1,7 +1,14 @@
 #!/usr/bin/env python3
 
+from argparse import ArgumentParser
 from collections import deque
 from random import shuffle, choice
+from os import mkdir
+from os.path import join as ojoin
+from time import time, gmtime, strftime
+
+OUTPUT_DIR = "output"
+OUTPUT_PREFIX = "output"
 
 GRID_H = None
 GRID_W = None
@@ -208,14 +215,67 @@ class GridNode(object):
         return node
 
 if __name__ == "__main__":
-    set_grid_consts(4, 4)
-    test_nodes = [
-        GridNode.get_root_inst_with([1,2,3,4,5,6,0,8,9,10,7,12,13,14,11,15]),
-        GridNode.get_root_inst_with([1,0,3,4,5,2,7,8,9,6,10,11,13,14,15,12]),
-        GridNode.get_root_inst_with([0,2,3,4,1,5,7,8,9,6,11,12,13,10,14,15]),
-        GridNode.get_root_inst_with([5,1,2,3,0,6,7,4,9,10,11,8,13,14,15,12]),
-        GridNode.get_root_inst_with([1,6,2,3,9,5,7,4,0,10,11,8,13,14,15,12])
-    ]
-    tree, states_visited = GridNode.get_pseudo_rand_root_inst(GRID_OBJ.contents, 10).bfs()
-    tree_str, tree_depth = tree.pprint()
-    print("Visited {0} states. Replaying {1} move(s) from start to finish:\n\n{2}\n".format(states_visited, tree_depth - 1, tree_str))
+    parser = ArgumentParser(description="""
+        Run a X-Puzzle. By default, this runs a random 4x4 puzzle (see the
+        -d / --dimensions option, if no options are provided then this is the
+        default). The five test cases can be ran if specified (see the -t /
+        --do-tests option).
+    """)
+    parser.add_argument(
+        "-d",
+        "--dimensions",
+        metavar="MxNxD",
+        type=str,
+        default="4x4x15",
+        help="""
+            HEIGHTxWIDTHxMOVES, where HEIGHT and WIDTH are the height and width
+            of the puzzle, and MOVES is the number of moves used to generate the
+            pseudo-random puzzle. A pseudo-random puzzle means that the objective
+            grid is copied and then MOVES number of actions are performed on the
+            grid to have a "random" grid with a complexity to solve is known (at
+            least, the max complexity is). The default value is '4x4x15'. The
+            values for M and N must be greater than two.
+        """
+    )
+    parser.add_argument(
+        "-t",
+        "--do-tests",
+        action="store_true",
+        help="Run the five 4x4 test cases (will ignore the value for 'dimensions')."
+    )
+    args = parser.parse_args()
+
+    try:
+        mkdir(OUTPUT_DIR)
+    except FileExistsError:
+        pass
+
+    test_nodes = None; pseudo_node_inverses = None
+    if args.do_tests:
+        set_grid_consts(4, 4)
+        test_nodes = [
+            GridNode.get_root_inst_with([1,2,3,4,5,6,0,8,9,10,7,12,13,14,11,15]),
+            GridNode.get_root_inst_with([1,0,3,4,5,2,7,8,9,6,10,11,13,14,15,12]),
+            GridNode.get_root_inst_with([0,2,3,4,1,5,7,8,9,6,11,12,13,10,14,15]),
+            GridNode.get_root_inst_with([5,1,2,3,0,6,7,4,9,10,11,8,13,14,15,12]),
+            GridNode.get_root_inst_with([1,6,2,3,9,5,7,4,0,10,11,8,13,14,15,12])
+        ]
+    else:
+        h, w, pseudo_node_inverses = (int(s) for s in args.dimensions.split("x"))
+        set_grid_consts(h, w)
+        test_nodes = [GridNode.get_pseudo_rand_root_inst(GRID_OBJ.contents, pseudo_node_inverses)]
+
+    for i, test_node in enumerate(test_nodes):
+        output_filename = ojoin(OUTPUT_DIR, "{0}{1}.txt".format(OUTPUT_PREFIX, i))
+        with open(output_filename, "w") as output_file:
+            start_time = time()
+            final_node, states_visited = test_node.bfs()
+            finish_time = time()
+            tree_str, tree_depth = final_node.pprint()
+            formatted_time = strftime("%H:%M:%S", gmtime(finish_time - start_time))
+            output_file.write("Visited {0} states. Replaying {1} move(s) from start to finish:\n\n{2}\n".format(
+                states_visited,
+                tree_depth - 1,
+                tree_str
+            ))
+        print("Finished ({0}). See '{1}'.".format(formatted_time, output_filename))
