@@ -3,9 +3,10 @@
 from collections import deque
 from random import shuffle, choice
 
-GRID_H = 4
-GRID_W = 4
-GRID_A = 16
+GRID_H = None
+GRID_W = None
+GRID_A = None
+GRID_OBJ = None
 
 # A simple object that only stores the content of the grid
 class Grid(object):
@@ -28,8 +29,16 @@ class Grid(object):
         global GRID_A, GRID_W
         return "\n".join("".join("{0: <3}".format(c) for c in self.contents[i:i+GRID_W]).strip() for i in range(0, GRID_A, GRID_W))
 
-# Create a copy of the grid that represents the objective state for the puzzle
-GRID_OBJ = Grid([i for i in range(1, GRID_A)] + [0])
+# Create the grid constants given the desired width and height above two
+def set_grid_consts(h, w):
+    global GRID_H, GRID_W, GRID_A, GRID_OBJ
+    assert((h > 2) and (w > 2))
+    # Accept the width and height of the puzzle, then calculate its area
+    GRID_H = h
+    GRID_W = w
+    GRID_A = GRID_H * GRID_W
+    # Create a copy of the grid that represents the objective state for the puzzle
+    GRID_OBJ = Grid([i for i in range(1, GRID_A)] + [0])
 
 # An object that represents one state of a Grid that lives in a tree of states
 class GridNode(object):
@@ -199,6 +208,7 @@ class GridNode(object):
         return node
 
 if __name__ == "__main__":
+    set_grid_consts(4, 4)
     test_nodes = [
         GridNode.get_root_inst_with([1,2,3,4,5,6,0,8,9,10,7,12,13,14,11,15]),
         GridNode.get_root_inst_with([1,0,3,4,5,2,7,8,9,6,10,11,13,14,15,12]),
