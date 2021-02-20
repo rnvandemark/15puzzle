@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 from collections import deque
+from random import shuffle, choice
 
 GRID_H = 4
 GRID_W = 4
@@ -155,6 +156,48 @@ class GridNode(object):
     def get_root_inst_with(contents):
         return GridNode(None, contents, contents.index(0))
 
+    # Get a randomly shuffled initial grid
+    @staticmethod
+    def get_rand_root_inst():
+        global GRID_A
+        grid_contents = list(range(GRID_A))
+        shuffle(grid_contents)
+        return GridNode.get_root_inst_with(grid_contents)
+
+    # Get a pseudo-random grid, in the sense that a grid's contents are given, and the a
+    # specified number of moves are given to move away from that randomly. The idea is that
+    # an 'up' move is the inverse of a 'down' move and vice versa, and the same thing for a
+    # 'left' and 'right' move. This is a random set of moves, so while the solution is
+    # guaranteed to not take more than the specified number of moves, it's possible that a
+    # solution that takes less moves exists.
+    @staticmethod
+    def get_pseudo_rand_root_inst(grid_contents, num_rand_moves):
+        # Get the initial node and start to loop N times
+        node = GridNode.get_root_inst_with(grid_contents)
+        for i in range(num_rand_moves):
+            # Get all of the possible moves (speed it up by Pythonicly rejecting None values)
+            possible_moves = list(n for n in node.all_moves() if n)
+            # Find a random parent (this is an 'inverse', so the potential moves are nodes
+            # that actually describe the parent to this current node)
+            parent_node = None
+            while not parent_node:
+                if len(possible_moves) == 0:
+                    # This should never happen
+                    return None
+                # Select a random element from the list
+                potential_parent = choice(possible_moves)
+                if node.valid_child(potential_parent):
+                    # Got a valid parent, continue the loop
+                    parent_node = potential_parent
+                else:
+                    # Not a valid move, don't try to visit this node again
+                    possible_moves.remove(potential_parent)
+            node = parent_node
+
+        # Make this a 'root' node by setting this node to not have a parent
+        node.parent = None
+        return node
+
 if __name__ == "__main__":
     test_nodes = [
         GridNode.get_root_inst_with([1,2,3,4,5,6,0,8,9,10,7,12,13,14,11,15]),
@@ -163,3 +206,6 @@ if __name__ == "__main__":
         GridNode.get_root_inst_with([5,1,2,3,0,6,7,4,9,10,11,8,13,14,15,12]),
         GridNode.get_root_inst_with([1,6,2,3,9,5,7,4,0,10,11,8,13,14,15,12])
     ]
+    tree, states_visited = GridNode.get_pseudo_rand_root_inst(GRID_OBJ.contents, 10).bfs()
+    tree_str, tree_depth = tree.pprint()
+    print("Visited {0} states. Replaying {1} move(s) from start to finish:\n\n{2}\n".format(states_visited, tree_depth - 1, tree_str))
