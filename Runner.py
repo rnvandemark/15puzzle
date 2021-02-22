@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 from argparse import ArgumentParser
-from collections import deque
+from collections import deque, OrderedDict
 from random import shuffle, choice
 from os import mkdir
 from os.path import join as ojoin
@@ -124,11 +124,10 @@ class GridNode(object):
 
         # Start at the root node, search until the objective grid has not been found
         curr_node = self
-        all_nodes = set()
-        all_nodes.add(curr_node)
+        all_nodes = OrderedDict()
         final_node = None
         while curr_node and not final_node:
-            all_nodes.add(curr_node)
+            all_nodes[curr_node] = None # Use the key to test for uniqueness, ignore the value
             if curr_node.grid == GRID_OBJ:
                 # This node has the objective state, exit the loop
                 final_node = curr_node
@@ -144,8 +143,8 @@ class GridNode(object):
             curr_node = nodes.popleft()
 
         # Eventually, the objective grid is found
-        # If being verbose, return the set of grid states, else just return the length of the set
-        return final_node, all_nodes if verbose else len(all_nodes)
+        # If being verbose, return the set of grid states as well
+        return final_node, len(all_nodes), all_nodes if verbose else None
 
     # Pretty print, including tracking depth of the tree to be parsable
     def pprint(self, depth=1):
@@ -257,6 +256,14 @@ if __name__ == "__main__":
         action="store_true",
         help="Run the five 4x4 test cases."
     )
+    parser.add_argument(
+        "-v",
+        "--verbose",
+        action="store_true",
+        help="""
+            Print ALL of the states visited to the solution's corresponding output
+            file, following the path of success."""
+    )
     args = parser.parse_args()
 
     try:
@@ -290,13 +297,19 @@ if __name__ == "__main__":
         output_filename = ojoin(OUTPUT_DIR, "{0}{1}.txt".format(OUTPUT_PREFIX, i))
         with open(output_filename, "w") as output_file:
             start_time = time()
-            final_node, states_visited = test_node.bfs()
+            final_node, num_states_visited, states_visited = test_node.bfs(verbose=args.verbose)
             finish_time = time()
             tree_str, tree_depth = final_node.pprint()
             formatted_time = strftime("%H:%M:%S", gmtime(finish_time - start_time))
             output_file.write("Visited {0} states. Replaying {1} move(s) from start to finish:\n\n{2}\n".format(
-                states_visited,
+                num_states_visited,
                 tree_depth - 1,
                 tree_str
             ))
+            if states_visited != None:
+                output_file.write("\nPrinting {0} states in the order they were visited:\n".format(
+                    num_states_visited
+                ))
+                for state_visited in states_visited:
+                    output_file.write("\n{0}\n".format(state_visited))
         print("Finished ({0}). See '{1}'.".format(formatted_time, output_filename))
