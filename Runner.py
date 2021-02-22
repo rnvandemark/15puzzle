@@ -67,25 +67,17 @@ class GridNode(object):
 
     # 'Equal' is only if the grid is equal
     def __eq__(self, other):
-        return isinstance(other, GridNode) and (self.grid == other.grid)
+        return isinstance(other, GridNode) and (self.__key() == other.__key())
+
+    def __hash__(self):
+        return hash(self.grid.contents)
 
     # Just stringify the grid
     def __str__(self):
         return str(self.grid)
 
-    # Determine if the grid of a given GridNode is one that already exists in the tree
-    def has_visited(self, other):
-        if self == other:
-            return True
-        elif self.parent:
-            return self.parent.has_visited(other)
-        else:
-            return False
-
-    # Determine if a given object is a valid child, meaning it is a GridNode and it also
-    # has not been visited before
-    def valid_child(self, other):
-        return not self.has_visited(other) if isinstance(other, GridNode) else False
+    def __key(self):
+        return hash(self)
 
     # After a move is known to be possible, create the resultant node; The z-index is
     # translated according to where the empty tile would end up on the 1-D container
@@ -124,18 +116,19 @@ class GridNode(object):
         return self.move_up(), self.move_down(), self.move_left(), self.move_right()
 
     # Perform breadth first search on a root node
-    def bfs(self):
+    def bfs(self, verbose=False):
         global GRID_OBJ
 
         # Create the queue of child nodes to visit
         nodes = deque()
-        nodes_visited = 0
 
         # Start at the root node, search until the objective grid has not been found
         curr_node = self
+        all_nodes = set()
+        all_nodes.add(curr_node)
         final_node = None
         while curr_node and not final_node:
-            nodes_visited = nodes_visited + 1
+            all_nodes.add(curr_node)
             if curr_node.grid == GRID_OBJ:
                 # This node has the objective state, exit the loop
                 final_node = curr_node
@@ -143,7 +136,7 @@ class GridNode(object):
                 # Get the results of the four types of moves
                 for potential_child in curr_node.all_moves():
                     # Determine if each move was valid
-                    if curr_node.valid_child(potential_child):
+                    if GridNode.valid_child(potential_child, all_nodes):
                         # Move was valid, add it to the queue of nodes to visit (push it right)
                         nodes.append(potential_child)
 
@@ -151,7 +144,8 @@ class GridNode(object):
             curr_node = nodes.popleft()
 
         # Eventually, the objective grid is found
-        return final_node, nodes_visited
+        # If being verbose, return the set of grid states, else just return the length of the set
+        return final_node, all_nodes if verbose else len(all_nodes)
 
     # Pretty print, including tracking depth of the tree to be parsable
     def pprint(self, depth=1):
@@ -166,6 +160,12 @@ class GridNode(object):
             return tree_str, int(tree_depth_str)
         else:
             return s
+
+    # Determine if a given object is a valid child, meaning it is a GridNode and it also
+    # has not been visited before
+    @staticmethod
+    def valid_child(new_node, all_nodes):
+        return new_node not in all_nodes if isinstance(new_node, GridNode) else False
 
     # Create a root GridNode given the grid cell contents
     @staticmethod
@@ -195,6 +195,7 @@ class GridNode(object):
             possible_moves = list(n for n in node.all_moves() if n)
             # Find a random parent (this is an 'inverse', so the potential moves are nodes
             # that actually describe the parent to this current node)
+            all_nodes = set()
             parent_node = None
             while not parent_node:
                 if len(possible_moves) == 0:
@@ -202,13 +203,14 @@ class GridNode(object):
                     return None
                 # Select a random element from the list
                 potential_parent = choice(possible_moves)
-                if node.valid_child(potential_parent):
+                if GridNode.valid_child(potential_parent, all_nodes):
                     # Got a valid parent, continue the loop
                     parent_node = potential_parent
                 else:
                     # Not a valid move, don't try to visit this node again
                     possible_moves.remove(potential_parent)
             node = parent_node
+            all_nodes.add(node)
 
         # Make this a 'root' node by setting this node to not have a parent
         node.parent = None
